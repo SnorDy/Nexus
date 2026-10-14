@@ -88,6 +88,7 @@ class NexusListenService : Service() {
         listenJob = scope.launch(Dispatchers.IO) {
             Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO)//дает максимум процессорного времени, чтобы пакеты аудио не терялись
             NexusState.set(NexusStatus.Loading)
+            Log.d("NEXUS STATE", NexusState.status.value.name)
 
             val pipeline = try {
                 VadAsrPipeline(applicationContext, scope, listener)

@@ -1,4 +1,4 @@
-package mkn.snordy.nexus
+package mkn.snordy.nexus.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

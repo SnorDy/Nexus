@@ -1,7 +1,6 @@
 package mkn.snordy.nexus
 
 import android.Manifest
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -17,15 +16,27 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yandex.authsdk.YandexAuthLoginOptions
 import com.yandex.authsdk.YandexAuthOptions
 import com.yandex.authsdk.YandexAuthResult
 import com.yandex.authsdk.YandexAuthSdk
 import mkn.snordy.nexus.ui.theme.NexusTheme
+import mkn.snordy.nexus.viewModel.AuthState
+import mkn.snordy.nexus.viewModel.AuthViewModel
+import mkn.snordy.nexus.viewModel.NexusViewModel
+
+data class NexusUiState(
+    val isStopped: Boolean = false,
+    val isLoading: Boolean = false,
+    val isListening: Boolean = false,
+    val isExecuting: Boolean = false,
+    val error: String? =null
+)
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,32 +51,28 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
+
 @Composable
-fun NexusMainScreen(modifier: Modifier = Modifier) {
+fun NexusMainScreen(
+    modifier: Modifier = Modifier,
+    viewModel: NexusViewModel = viewModel()
+) {
     val context = LocalContext.current
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    //Проверяем, запущен ли уже сервис (чтобы не спамить)
-    var isServiceRunning by remember { mutableStateOf(NexusState.status.value != NexusStatus.Stopped) }
-
-    // Создаем лаунчер для запроса разрешений
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
-        // Проверяем, дал ли пользователь разрешение на микрофон
         val micGranted = permissions[Manifest.permission.RECORD_AUDIO] == true ||
                 ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
 
         if (micGranted) {
-            startNexusService(context)
-            isServiceRunning = true
-        } else {
-            // Пользователь отказал, можно показать снекбар или диалог
+            viewModel.startService(context)
         }
     }
-
     val checkPermissionsAndStart = {
         val permissionsToRequest = mutableListOf(Manifest.permission.RECORD_AUDIO)
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS)
         }
@@ -75,39 +82,53 @@ fun NexusMainScreen(modifier: Modifier = Modifier) {
         }
 
         if (allGranted) {
-            startNexusService(context)
-            isServiceRunning = true
+            viewModel.startService(context)
         } else {
             permissionLauncher.launch(permissionsToRequest.toTypedArray())
         }
     }
+
     Column(
         modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
-        if (!isServiceRunning) {
-            Button(onClick = checkPermissionsAndStart) {
-                Text("Запустить Nexus")
+        when {
+            uiState.isStopped -> {
+                Button(onClick = checkPermissionsAndStart) {
+                    Text("Запустить Nexus")
+                }
             }
-        } else {
-            Text("Nexus слушает...")
-            Button(onClick = {
-                val intent = Intent(context, NexusListenService::class.java)
-                context.stopService(intent)
-                isServiceRunning = false
-            }) {
-                Text("Остановить")
+
+            uiState.isLoading -> {
+                CircularProgressIndicator()
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Загрузка нейросетей...")
+            }
+            uiState.error != null -> {
+                Text(text = "Error: ${uiState.error}", color = MaterialTheme.colorScheme.error)
+                Button(onClick = { viewModel.stopService(context) }) {
+                    Text("Restart")
+                }
+            }
+
+            uiState.isListening -> {
+                Text(
+                    text = if (uiState.isExecuting) "Nexus выполняет..." else "Nexus слушает...",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = { viewModel.stopService(context) },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Остановить")
+                }
             }
         }
     }
 }
 
-private fun startNexusService(context: android.content.Context) {
-    val serviceIntent = Intent(context, NexusListenService::class.java)
-    ContextCompat.startForegroundService(context, serviceIntent)
-}
 
 @Composable
 fun AuthScreen(
