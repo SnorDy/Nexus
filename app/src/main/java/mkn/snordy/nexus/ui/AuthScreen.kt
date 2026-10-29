@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -34,6 +35,7 @@ import mkn.snordy.nexus.viewModel.AuthViewModel
 @Composable
 fun AuthScreen(
     modifier: Modifier = Modifier,
+    onDismiss: () -> Unit,
     viewModel: AuthViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -49,48 +51,50 @@ fun AuthScreen(
         }
     }
 
-    Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.TopStart
+    Column(
+        modifier = modifier.padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         when (val state = authState) {
             is AuthState.Idle -> {
-                Row(Modifier.fillMaxWidth()){
-                    Button(onClick = { launcher.launch(YandexAuthLoginOptions()) }) {
-                        Text("Войти через Яндекс")
-                    }}
-
+                Text("Авторизация", style = MaterialTheme.typography.headlineSmall)
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = { launcher.launch(YandexAuthLoginOptions()) }) {
+                    Text("Войти через Яндекс")
+                }
+                TextButton(onClick = onDismiss) {
+                    Text("Отмена")
+                }
             }
 
             is AuthState.Loading -> CircularProgressIndicator()
 
             is AuthState.Success -> {
-                Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "Привет, ${state.userName}!",
-                        style = MaterialTheme.typography.headlineMedium
-                    )
-                    state.email?.let {
-                        Text(text = it, style = MaterialTheme.typography.bodyLarge)
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = { viewModel.resetState() }) {
-                        Text("Выйти")
-                    }
+                Text(
+                    text = "Привет, ${state.userName}!",
+                    style = MaterialTheme.typography.headlineMedium
+                )
+                state.email?.let {
+                    Text(text = it, style = MaterialTheme.typography.bodyLarge)
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = {
+                    viewModel.resetState()
+                    onDismiss()
+                }) {
+                    Text("Выйти и закрыть")
                 }
             }
 
             is AuthState.Error -> {
-                AlertDialog(
-                    onDismissRequest = { viewModel.resetState() },
-                    title = { Text("Ошибка входа") },
-                    text = { Text(state.message) },
-                    confirmButton = {
-                        TextButton(onClick = { viewModel.resetState() }) {
-                            Text("ОК")
-                        }
-                    }
-                )
+                Text(text = "Ошибка: ${state.message}", color = MaterialTheme.colorScheme.error)
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = {
+                    viewModel.resetState()
+                    onDismiss()
+                }) {
+                    Text("Закрыть")
+                }
             }
         }
     }
