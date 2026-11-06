@@ -29,7 +29,9 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-
+import mkn.snordy.nexus.commands.CommandResult
+import mkn.snordy.nexus.commands.CommandRouter
+import mkn.snordy.nexus.commands.NexusCommands
 
 
 class NexusListenService : Service() {
@@ -37,6 +39,9 @@ class NexusListenService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var listenJob: Job? = null
     private var resetJob: Job? = null
+
+    private lateinit var router: CommandRouter
+
     private var wakeLock: PowerManager.WakeLock? = null //эта штука будет периодически пинать процессор, чтобы в спящем режиме он не погрузился в глубокий сон и все еще обрабатывал команды
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -44,6 +49,7 @@ class NexusListenService : Service() {
     override fun onCreate() {
         super.onCreate()
         createChannel()
+        router = NexusCommands.createRouter(applicationContext)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -186,7 +192,17 @@ class NexusListenService : Service() {
 
 
     private fun handleCommand(text: String) {
-        Log.d(TAG, "command: $text") // пока заглушка
+        scope.launch {
+            val result = router.process(text)
+            val msg = when (result) {
+                is CommandResult.Success -> result.message
+                is CommandResult.Failure -> result.message
+                is CommandResult.NeedsClarification -> result.question
+            }
+            NexusState.setResult(msg)
+            Log.d("RESULT", "result: $msg")
+        }
+        Log.d("CMD", "command: $text")
     }
 
     private fun scheduleReset(delayMs: Long) {

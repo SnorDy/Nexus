@@ -48,7 +48,7 @@ class AuthViewModel : ViewModel() {
                 val body = response.body?.string() ?: throw Exception("Пустой ответ")
                 val json = JSONObject(body)
 
-                val firstName = json.optString("first_name", "Пользователь")
+                val firstName = json.optString("login", "Пользователь")
                 val email = json.optString("default_email").takeIf { it.isNotBlank() }
 
                 firstName to email

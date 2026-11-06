@@ -11,6 +11,11 @@ object NexusState {
     val status: StateFlow<NexusStatus> = _status.asStateFlow()
 
     private val _lastCommand = MutableStateFlow("")
+    private val _lastResult = MutableStateFlow("")
+
+    val lastResult: StateFlow<String> = _lastResult.asStateFlow()
+    fun setResult(text: String) { _lastResult.value = text }
+
     val lastCommand: StateFlow<String> = _lastCommand.asStateFlow()
 
     fun set(s: NexusStatus) { _status.value = s }

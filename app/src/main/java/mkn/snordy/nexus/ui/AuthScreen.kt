@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yandex.authsdk.YandexAuthLoginOptions
 import com.yandex.authsdk.YandexAuthOptions
@@ -72,11 +73,9 @@ fun AuthScreen(
             is AuthState.Success -> {
                 Text(
                     text = "Привет, ${state.userName}!",
-                    style = MaterialTheme.typography.headlineMedium
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontSize = 16.sp
                 )
-                state.email?.let {
-                    Text(text = it, style = MaterialTheme.typography.bodyLarge)
-                }
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(onClick = {
                     viewModel.resetState()

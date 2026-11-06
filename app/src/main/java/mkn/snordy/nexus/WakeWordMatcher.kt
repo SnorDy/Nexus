@@ -2,7 +2,7 @@ package mkn.snordy.nexus
 
 object WakeWordMatcher {
     private const val WAKE = "нексус"
-    private val ALIASES = setOf("нексос", "нексус", "некзус", "наксус", "нексас")
+    private val ALIASES = setOf("нексос", "нексус", "некзус", "наксус", "нексас","на иксус", "иисус", "иксус")
     private val BLOCK = setOf("лексус")
 
     private fun norm(s: String) = s.lowercase().replace('ё', 'е').replace('э', 'е')
@@ -23,7 +23,7 @@ object WakeWordMatcher {
         w !in BLOCK && (w in ALIASES || lev(w, WAKE) <= maxDist)
 
     //редакционное расстояние (вычисляет с помощью дп расстояние от слова нексус до переданного, допускается 1 ошибка)
-    private fun lev(a: String, b: String): Int {
+    fun lev(a: String, b: String): Int {
         val d = IntArray(b.length + 1) { it }
         for (i in 1..a.length) {
             var prev = d[0]; d[0] = i
