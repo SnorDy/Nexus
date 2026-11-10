@@ -31,8 +31,7 @@ class AppRepository(private val context: Context) {
         "com.yandex.browser" to listOf("яндекс", "браузер", "яндекс браузер"),
         "ru.ozon.app.android" to listOf("азон", "озон"),
         "com.wildberries.ru" to listOf("вб", "вайлдберис", "вайлдбериз", "валдберис","валдбериз"),
-        "com.deepseek.chat" to listOf("дипсик"),
-        "com.google.android" to listOf("почту", "почта", "гмайл"),
+        "com.google.android.gm" to listOf("почту", "почта", "гмайл"),
     )
     fun find(spoken: String): List<AppInfo> {
         val q = normalizeRu(spoken)
@@ -88,6 +87,7 @@ class AppRepository(private val context: Context) {
                 val label = ri.loadLabel(pm).toString()
                 val keys = buildList {
                     add(normalizeRu(label))
+                    add(normalizeRu(latinToCyrillic(label)))
                     spokenAliases[pkg]?.forEach { add(normalizeRu(it)) }
                 }.filter { it.isNotEmpty() }.distinct()
                 Entry(AppInfo(label, pkg), keys)
@@ -96,12 +96,37 @@ class AppRepository(private val context: Context) {
         Log.d(TAG, "loaded ${entries.size} launchable apps")
     }
 
+    private fun latinToCyrillic(s: String): String {
+        val t = s.lowercase()
+        val sb = StringBuilder()
+        var i = 0
+        while (i < t.length) {
+            val two = if (i + 1 < t.length) t.substring(i, i + 2) else ""
+            val d = DIGRAPHS[two]
+            if (d != null) { sb.append(d); i += 2; continue }
+            sb.append(SINGLE[t[i]] ?: t[i].toString())
+            i++
+        }
+        return sb.toString()
+    }
+
 
     private companion object {
         const val TAG = "AppRepository"
         const val NO_MATCH = Int.MAX_VALUE
         const val RELOAD_MIN_INTERVAL_MS = 30_000L
-
-
+        val DIGRAPHS = mapOf(
+            "sh" to "ш", "ch" to "ч", "zh" to "ж", "th" to "т", "ph" to "ф", "kh" to "х",
+            "ts" to "ц", "ya" to "я", "yu" to "ю", "oo" to "у", "ee" to "и","ea" to "и", "ck" to "к",
+        )
+        val SINGLE = mapOf(
+            'a' to "а", 'b' to "б", 'c' to "к", 'd' to "д", 'e' to "е", 'f' to "ф", 'g' to "г",
+            'h' to "х", 'i' to "и", 'j' to "дж", 'k' to "к", 'l' to "л", 'm' to "м", 'n' to "н",
+            'o' to "о", 'p' to "п", 'q' to "к", 'r' to "р", 's' to "с", 't' to "т", 'u' to "у",
+            'v' to "в", 'w' to "в", 'x' to "кс", 'y' to "й", 'z' to "з",
+        )
     }
+
+
+
 }
