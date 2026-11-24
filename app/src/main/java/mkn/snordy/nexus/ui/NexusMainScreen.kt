@@ -125,7 +125,7 @@ fun NexusMainScreen(
 
 
                 NavigationDrawerItem(
-                    label = { Text("Войти через Яндекс") },
+                    label = { Text("Войти в аккаунт") },
                     icon = { Icon(Icons.Default.Login, contentDescription = null) },
                     selected = false,
                     onClick = {
